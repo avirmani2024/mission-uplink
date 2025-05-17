@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard – Mission Uplink</title>
+  <script type="module" src="supabase.js"></script>
+  <style>
+    body {
+      background-color: #002b36;
+      color: #5bc759;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #ffffff;
+    }
+
+    .form {
+      background-color: #004f66;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      margin-bottom: 40px;
+      box-shadow: 0px 0px 10px rgba(91, 199, 89, 0.3);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #5bc759;
+      color: #002b36;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #4ac24d;
+    }
+
+    .deployment-list {
+      width: 80%;
+      max-width: 600px;
+    }
+
+    .deployment {
+      background-color: #004f66;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      background-color: #c24c4c;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <button class="logout-btn" id="logout">Logout</button>
+
+  <h1>Mission Uplink Dashboard</h1>
+  <p>Welcome! Add new deployments or view your existing ones below.</p>
+
+  <div class="form">
+    <h3>Add Deployment</h3>
+    <input type="text" id="name" placeholder="Deployment Name" />
+    <input type="text" id="latitude" placeholder="Latitude" />
+    <input type="text" id="longitude" placeholder="Longitude" />
+    <input type="text" id="logo_url" placeholder="Logo Image URL" />
+    <textarea id="img_list" placeholder="Image/Video URLs (comma separated)"></textarea>
+    <button id="submit">Submit Deployment</button>
+    <p id="status"></p>
+  </div>
+
+  <div class="deployment-list" id="deployment-list"></div>
+
+  <script type="module">
+    import { supabase } from './supabase.js';
+
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
+      if (!data.session) {
+        window.location.href = "login.html";
+      }
+      return data.session.user.id;
+    }
+
+    const userId = await checkSession();
+
+    document.getElementById('logout').onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = "login.html";
+    };
+
+    document.getElementById('submit').onclick = async () => {
+      const name = document.getElementById('name').value;
+      const latitude = parseFloat(document.getElementById('latitude').value);
+      const longitude = parseFloat(document.getElementById('longitude').value);
+      const logo_url = document.getElementById('logo_url').value;
+      const img_list = document.getElementById('img_list').value;
+
+      const { error } = await supabase.from('deployments').insert({
+        user_id: userId,
+        name,
+        latitude,
+        longitude,
+        logo_url,
+        img_list
+      });
+
+      if (error) {
+        document.getElementById('status').innerText = "Error: " + error.message;
+      } else {
+        document.getElementById('status').innerText = "Deployment added!";
+        loadDeployments(); // Refresh list
+      }
+    };
+
+    async function loadDeployments() {
+      const { data, error } = await supabase
+        .from('deployments')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('deployment-list');
+      container.innerHTML = '';
+
+      if (error) {
+        container.innerText = "Error loading deployments.";
+        return;
+      }
+
+      data.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'deployment';
+        el.innerHTML = `
+          <strong>${d.name}</strong><br>
+          (${d.latitude}, ${d.longitude})<br>
+          <img src="${d.logo_url}" style="max-width: 100px; margin-top: 5px;" />
+          <p style="color: #aaffaa; font-size: 13px;">Media: ${d.img_list}</p>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    loadDeployments();
+  </script>
+
+</body>
+</html>

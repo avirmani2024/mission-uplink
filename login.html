@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mission Uplink – Login</title>
+  <script type="module" src="supabase.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #002b36;
+      color: #5bc759;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      background-color: #004f66;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0px 0px 20px rgba(91, 199, 89, 0.4);
+      width: 350px;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    p {
+      font-size: 14px;
+      color: #c3f0ca;
+      margin-bottom: 24px;
+    }
+
+    input {
+      padding: 10px;
+      margin: 8px 0;
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 6px;
+      background-color: #5bc759;
+      color: #002b36;
+      font-weight: bold;
+      cursor: pointer;
+      width: 45%;
+    }
+
+    button:hover {
+      background-color: #4ac24d;
+    }
+
+    #logo {
+      width: 60%;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <img id="logo" src="MissionUplinkFullLogo.png" alt="Mission Uplink Logo" />
+
+    <h1>Welcome to Mission Uplink</h1>
+    <p>
+      Empowering nonprofits to share their impact across the globe.<br>
+      Log in or register to begin mapping your mission.
+    </p>
+
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+
+    <div>
+      <button id="login-btn">Login</button>
+      <button id="signup-btn">Sign Up</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from "./supabase.js";
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+
+    document.getElementById("login-btn").onclick = async () => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+      });
+      if (error) alert(error.message);
+      else window.location.href = "dashboard.html";
+    };
+
+    document.getElementById("signup-btn").onclick = async () => {
+      const { error } = await supabase.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+      });
+      if (error) alert(error.message);
+      else alert("Check your email to confirm your registration.");
+    };
+  </script>
+</body>
+</html>

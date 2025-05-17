@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Impact - Mission Uplink</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,425;1,325&display=swap" rel="stylesheet">
+
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+
+.mapboxgl-popup-close-button {
+  display: none;
+}
+
+.mapboxgl-popup-content {
+  font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', sans-serif;
+  padding: 0;
+}
+
+.mapboxgl-popup-content h3 {
+  background: #50b65d;
+  color: #fff;
+  margin: 0;
+  padding: 10px;
+  border-radius: 3px 3px 0 0;
+  font-weight: 700;
+  margin-top: -15px;
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0;
+  padding: 10px;
+  font-weight: 400;
+}
+
+.mapboxgl-popup-content div {
+  padding: 10px;
+  width: 400px;
+}
+
+.mapboxgl-popup-anchor-top > .mapboxgl-popup-content {
+  margin-top: 15px;
+}
+
+.mapboxgl-popup-anchor-top > .mapboxgl-popup-tip {
+  border-bottom-color: #50b65d;
+}
+
+.overlay {
+    z-index: 2;
+    float:right;
+    margin-right: 2em;
+    color: #5bc759;
+    font-family: "Libre Franklin";
+    /* height: 100%; */
+}
+
+
+
+.rightbar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 33%;
+    height: 95%;
+    background-color: #004f66;
+    color: #5bc759;
+    font-family: "Libre Franklin";
+    z-index: 1;
+    overflow: scroll;
+    margin-left: 0px;
+    padding: 20px;
+    box-shadow: 0px 0px 20px 10px #50b65d;
+    border-radius: 10px;
+
+}
+
+
+</style>
+</head>
+<body>
+
+
+
+<div class="rightbar" id="mu-info" >
+    <div class="overlay-content" style="padding-left: 1em;">
+        <img id="mu-popup-close" src="assets/x.svg" style="width: 10%; padding-top: 1em; padding-right:1em; float: right;" onclick="resetZoom()"></img>
+        <img id="mu-popup-image" style="width: 30% ; padding-top: 1em;">  </img>
+        <h1 id="mu-popup-title" ">Click on a Point to Get Started</h1>
+        <p id="mu-popup-coordinates" style="display: none;" ">Placeholder Coordinates</p>
+        <!-- <p> Notes:</p> -->
+        <!-- <p id="mu-popup-deployment-notes">Placeholder Deployment Notes</p> -->
+        <!-- <p id="mu-popup-deployment-date">Placeholder Deployment Date</p> -->
+        <div id="mu-popup-images"> </div>
+
+    </div>
+</div>
+
+<div id="logo" style="z-index: 2;">
+    <img style="width: 15%; padding-top: 1em; padding-left:1em;" src="MissionUplinkFullLogo.png"></img>
+</div>
+
+
+<div id="map" style="z-index: -100; width:67%; height:101%;";></div>
+
+
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoidGVjaGZvcmdvb2RpbmMiLCJhIjoiY2x2ZTFvMzR4MDR3OTJrczI1Zm1zenZoOSJ9.e5yJM1N747PmQAy2guXlPA';
+    const map = new mapboxgl.Map({
+        container: 'map', // container ID
+        style: 'mapbox://styles/techforgoodinc/clutzmvzy001o01pa5mzo46iw', // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+        center: [49, 8], // starting position
+        zoom: 2, // starting zoom
+        projection: 'globe',
+    });
+
+
+
+
+
+
+    // At low zooms, complete a revolution every two minutes.
+    const secondsPerRevolution = 120;
+    // Above zoom level 5, do not rotate.
+    const maxSpinZoom = 5;
+    // Rotate at intermediate speeds between zoom levels 3 and 5.
+    const slowSpinZoom = 3;
+
+    let userInteracting = false;
+    let spinEnabled = true;
+
+    let bypass = false;
+
+    function resetZoom() {
+        spinEnabled = true;
+        userInteracting = false;
+
+        console.log("resetting zoom");
+
+        spinGlobe();
+
+        map.zoomTo(2);
+
+        document.getElementById('mu-popup-title').innerHTML = "Click on a Point to Get Started";
+        document.getElementById('mu-popup-coordinates').style.display = "none";
+        document.getElementById('mu-popup-images').innerHTML = "";
+        document.getElementById('mu-popup-image').src = "";
+    }
+
+    function spinGlobe() {
+        const zoom = map.getZoom();
+        if (spinEnabled && !userInteracting && zoom < maxSpinZoom ) {
+            let distancePerSecond = 360 / secondsPerRevolution;
+            if (zoom > slowSpinZoom) {
+                // Slow spinning at higher zooms
+                const zoomDif =
+                    (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
+                distancePerSecond *= zoomDif;
+            }
+            const center = map.getCenter();
+            center.lng -= distancePerSecond;
+            // Smoothly animate the map over one second.
+            // When this animation is complete, it calls a 'moveend' event.
+            map.easeTo({ center, duration: 1000, easing: (n) => n });
+        }
+    }
+
+
+    // Pause spinning on interaction
+    map.on('mousedown', () => {
+        userInteracting = true;
+        spinEnabled = false;
+    });
+
+
+
+    // These events account for cases where the mouse has moved
+    // off the map, so 'mouseup' will not be fired.
+    map.on('dragend', () => {
+        userInteracting = false;
+        spinGlobe();
+    });
+    map.on('pitchend', () => {
+        userInteracting = false;
+        spinGlobe();
+    });
+    map.on('rotateend', () => {
+        userInteracting = false;
+        spinGlobe();
+    });
+
+    // When animation is complete, start spinning if there is no ongoing interaction
+    map.on('moveend', () => {
+        spinGlobe();
+    });
+
+    spinGlobe();
+
+
+    map.on('load', () => {
+        // Add a new source from our GeoJSON data and
+        // set the 'cluster' option to true. GL-JS will
+        // add the point_count property to your source data.
+        map.addSource('earthquakes', {
+            type: 'geojson',
+            // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+            // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+            data: 'deployments.geojson',
+            cluster: true,
+            clusterMaxZoom: 14, // Max zoom to cluster points on
+            clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+        });
+
+        map.addLayer({
+            id: 'clusters',
+            type: 'circle',
+            source: 'earthquakes',
+            filter: ['has', 'point_count'],
+            paint: {
+                // Use step expressions (https://docs.mapbox.com/style-spec/reference/expressions/#step)
+                // with three steps to implement three types of circles:
+                //   * Blue, 20px circles when point count is less than 100
+                //   * Yellow, 30px circles when point count is between 100 and 750
+                //   * Pink, 40px circles when point count is greater than or equal to 750
+                'circle-color': [
+                    'step',
+                    ['get', 'point_count'],
+                    '#51bbd6',
+                    100,
+                    '#f1f075',
+                    750,
+                    '#f28cb1'
+                ],
+                'circle-radius': [
+                    'step',
+                    ['get', 'point_count'],
+                    20,
+                    100,
+                    30,
+                    750,
+                    40
+                ]
+            }
+        });
+
+        map.addLayer({
+            id: 'cluster-count',
+            type: 'symbol',
+            source: 'earthquakes',
+            filter: ['has', 'point_count'],
+            layout: {
+                'text-field': ['get', 'point_count_abbreviated'],
+                'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+                'text-size': 12
+            }
+        });
+
+        map.addLayer({
+            id: 'unclustered-point',
+            type: 'circle',
+            source: 'earthquakes',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+                'circle-color': '#11b4da',
+                'circle-radius': 10,
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#fff'
+            }
+        });
+
+        // inspect a cluster on click
+        map.on('click', 'clusters', (e) => {
+            const features = map.queryRenderedFeatures(e.point, {
+                layers: ['clusters']
+            });
+            const clusterId = features[0].properties.cluster_id;
+            map.getSource('earthquakes').getClusterExpansionZoom(
+                clusterId,
+                (err, zoom) => {
+                    if (err) return;
+
+                    map.easeTo({
+                        center: features[0].geometry.coordinates,
+                        zoom: zoom
+                    });
+                }
+            );
+        });
+
+        // When a click event occurs on a feature in
+        // the unclustered-point layer, open a popup at
+        // the location of the feature, with
+        // description HTML from its properties.
+        map.on('click', 'unclustered-point', (e) => {
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const currzoom = map.getZoom();
+            const name = e.features[0].properties.name;
+
+            // Ensure that if the map is zoomed out such that
+            // multiple copies of the feature are visible, the
+            // popup appears over the copy being pointed to.
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            zoomTo = 0;
+            if (currzoom > 3) {
+                zoomTo = currzoom;
+            } else {
+                zoomTo = 5;
+            }
+
+
+            // center point
+            map.easeTo({
+                center: coordinates,
+
+                zoom: zoomTo,
+            });
+
+            // set content
+            console.log(e.features[0].properties.logo);
+            document.getElementById('mu-popup-image').src = e.features[0].properties.logo;
+            document.getElementById('mu-popup-title').innerHTML = e.features[0].properties.name;
+            document.getElementById('mu-popup-coordinates').innerHTML = `Coordinates: ${coordinates[0]}, ${coordinates[1]}`;
+            document.getElementById('mu-popup-coordinates').style.display = "block";
+            // document.getElementById('mu-popup-deployment-notes').innerHTML = e.features[0].properties.notes;
+            // document.getElementById('mu-popup-deployment-date').innerHTML = e.features[0].properties.date;
+
+
+
+            // render all images and videos in list
+            img_html = '';
+
+            // console.log(e.features[0].properties.img_list);
+            var lst = e.features[0].properties.img_list.split(",");
+            console.log(lst);
+            for (let i = 0; i < lst.length; i++) {
+
+                var cleanString = lst[i].replace(/[[|\]&;$%@"<>()+,]/g, "");
+
+                //check if file extension is image or video
+                if (cleanString.includes(".mp4") || cleanString.includes(".mov") || cleanString.includes(".avi") || cleanString.includes(".webm")) {
+                    img_html += `<video width="100%"; padding-top:1em; controls> <source src="${cleanString}" type="video/mp4"> </video> <br>`;
+                } else {
+                    img_html += `<img width="100%" src="${cleanString}"; padding-top: 1em;"> </img> <br>`;
+                }
+            }
+
+            document.getElementById('mu-popup-images').innerHTML = img_html;
+
+
+
+        });
+
+        map.on('mouseenter', 'clusters', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'clusters', () => {
+            map.getCanvas().style.cursor = '';
+        });
+    });
+
+
+
+</script>
+
+</body>
+</html>
