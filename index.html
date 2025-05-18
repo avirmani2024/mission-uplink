@@ -110,10 +110,45 @@
       const btnWrapper = document.getElementById("add-deployment-wrapper");
       if (user) {
         btnWrapper.style.display = "block";
+        document.getElementById("add-deployment").onclick = () => {
+          window.location.href = "dashboard.html";
+        };
+        loadDeployments();
       } else {
         window.location.href = "login.html";
       }
     }
+
+    async function loadDeployments() {
+      const { data, error } = await supabase.from("deployments").select("*");
+      if (error) {
+        console.error("Failed to load deployments:", error.message);
+        return;
+      }
+
+      data.forEach(deployment => {
+        const marker = new mapboxgl.Marker()
+          .setLngLat([deployment.longitude, deployment.latitude])
+          .setPopup(new mapboxgl.Popup().setHTML(`
+            <h3>${deployment.name}</h3>
+            ${deployment.logo_url ? `<img src="${deployment.logo_url}" width="100%" />` : ""}
+            ${deployment.img_list ? deployment.img_list.split(",").map(url => url.trim().endsWith(".mp4") ? `<video width='100%' controls><source src='${url}' type='video/mp4'></video>` : `<img src='${url}' width='100%' />`).join("<br>") : ""}
+          `))
+          .addTo(map);
+      });
+    }
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [0, 20],
+      zoom: 2,
+      projection: 'globe',
+    });
+
+    map.on('style.load', () => {
+      map.setFog({});
+    });
 
     checkUser();
   </script>
