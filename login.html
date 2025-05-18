@@ -69,19 +69,15 @@
   </style>
 </head>
 <body>
-
   <div class="container">
     <img id="logo" src="MissionUplinkFullLogo.png" alt="Mission Uplink Logo" />
-
     <h1>Welcome to Mission Uplink</h1>
     <p>
       Empowering nonprofits to share their impact across the globe.<br>
       Log in or register to begin mapping your mission.
     </p>
-
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
-
     <div>
       <button id="login-btn">Login</button>
       <button id="signup-btn">Sign Up</button>
@@ -89,7 +85,12 @@
   </div>
 
   <script type="module">
-    import { supabase } from "./supabase.js";
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabase = createClient(
+      "https://amtttzheixlsfmqphlrq.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtdHR0emhlaXhsc2ZtcXBobHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1MTI3MjEsImV4cCI6MjA2MzA4ODcyMX0.Mbxy4h8ZR0uDEoKgpRMPh_nb6u1K3rIkaadd646WqU0"
+    );
 
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
@@ -100,7 +101,7 @@
         password: passwordInput.value,
       });
       if (error) alert(error.message);
-      else window.location.href = "dashboard.html";
+      else window.location.href = "index.html";
     };
 
     document.getElementById("signup-btn").onclick = async () => {
